@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 
+import '../admin/admin_dashboard.dart';
+
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
 
@@ -18,8 +20,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     try {
       await AuthService()
           .signInWithEmail(_emailController.text, _passwordController.text);
-      if (mounted)
-        Navigator.pop(context); // Go back to main which will route to dashboard
+      if (mounted) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
