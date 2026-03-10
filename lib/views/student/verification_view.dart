@@ -22,15 +22,16 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
   bool _isLoading = true;
   bool _success = false;
 
+  bool _locationVerified = false;
+
   @override
   void initState() {
     super.initState();
-    _startVerification();
+    _checkLocation();
   }
 
-  Future<void> _startVerification() async {
+  Future<void> _checkLocation() async {
     try {
-      // Layer 2: Geofencing
       setState(() => _status = 'Verifying Location...');
       Position pos = await Geolocator.getCurrentPosition();
       double distance = Geolocator.distanceBetween(
@@ -40,12 +41,41 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
         throw 'Out of classroom radius. Distance: ${distance.toInt()}m';
       }
 
-      // Layer 3: Face Detection (Mocking similarity for simplicity, but doing detection)
-      setState(() => _status = 'Capture Selfie for Verify');
+      setState(() {
+        _status = 'Location Verified ✓\nTap below to capture your selfie.';
+        _isLoading = false;
+        _locationVerified = true;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _status = 'Location Verification Failed: $e';
+          _isLoading = false;
+          _success = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _captureAndVerifySelfie() async {
+    setState(() {
+      _isLoading = true;
+      _status = 'Opening Camera...';
+    });
+
+    try {
+      // Layer 3: Face Detection
       final XFile? photo = await ImagePicker().pickImage(
           source: ImageSource.camera,
           preferredCameraDevice: CameraDevice.front);
-      if (photo == null) throw 'Selfie required';
+
+      if (photo == null) {
+        setState(() {
+          _status = 'Selfie capture was cancelled. Try again.';
+          _isLoading = false;
+        });
+        return;
+      }
 
       if (!kIsWeb) {
         setState(() => _status = 'Analyzing Face...');
@@ -76,17 +106,21 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
         'marked_by': 'student',
       }, SetOptions(merge: true));
 
-      setState(() {
-        _status = 'Attendance Marked Successfully!';
-        _isLoading = false;
-        _success = true;
-      });
+      if (mounted) {
+        setState(() {
+          _status = 'Attendance Marked Successfully!';
+          _isLoading = false;
+          _success = true;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _status = 'Verification Failed: $e';
-        _isLoading = false;
-        _success = false;
-      });
+      if (mounted) {
+        setState(() {
+          _status = 'Verification Failed: $e';
+          _isLoading = false;
+          _success = false;
+        });
+      }
     }
   }
 
@@ -109,10 +143,23 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
                   style: const TextStyle(fontSize: 18)),
               if (!_isLoading) ...[
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Back to Home'),
-                ),
+                if (_locationVerified && !_success)
+                  ElevatedButton.icon(
+                    onPressed: _captureAndVerifySelfie,
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('Capture Selfie'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
+                      textStyle: const TextStyle(fontSize: 18),
+                    ),
+                  ),
+                if (_success ||
+                    !_locationVerified && _status.contains('Failed'))
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Back to Home'),
+                  ),
               ],
             ],
           ),
