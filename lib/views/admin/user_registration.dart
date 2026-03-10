@@ -61,8 +61,11 @@ class _UserRegistrationState extends State<UserRegistration> {
               .child('user_photos/${_idController.text}.jpg');
 
           final metadata = SettableMetadata(contentType: 'image/jpeg');
-          await ref.putData(bytes, metadata);
-          photoUrl = await ref.getDownloadURL();
+          await ref
+              .putData(bytes, metadata)
+              .timeout(const Duration(seconds: 15));
+          photoUrl =
+              await ref.getDownloadURL().timeout(const Duration(seconds: 15));
         }
 
         final user = UserModel(
@@ -79,7 +82,8 @@ class _UserRegistrationState extends State<UserRegistration> {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.userId)
-            .set(user.toMap());
+            .set(user.toMap())
+            .timeout(const Duration(seconds: 15));
       }
 
       if (mounted) {

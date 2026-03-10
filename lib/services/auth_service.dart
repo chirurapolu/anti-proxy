@@ -55,13 +55,6 @@ class AuthService {
   }
 
   Future<UserCredential> signInWithEmail(String email, String password) async {
-    // Demo Bypass for UI Preview
-    if (email == 'admin@college.edu' && password == 'admin123') {
-      return _FakeUserCredential();
-    }
-    if (email == 'faculty@college.edu' && password == 'faculty123') {
-      return _FakeUserCredential();
-    }
     return await _auth.signInWithEmailAndPassword(
         email: email, password: password);
   }
@@ -133,13 +126,4 @@ class AuthService {
     }
     return false;
   }
-}
-
-class _FakeUserCredential implements UserCredential {
-  @override
-  User? get user => null;
-  @override
-  AuthCredential? get credential => null;
-  @override
-  AdditionalUserInfo? get additionalUserInfo => null;
 }

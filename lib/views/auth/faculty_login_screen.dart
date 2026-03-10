@@ -15,19 +15,13 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    // Demo bypass
-    if (_emailController.text == 'faculty@college.edu' && _passwordController.text == 'faculty123') {
-      if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const FacultyHome()));
-      }
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
-      await AuthService().signInWithEmail(_emailController.text, _passwordController.text);
+      await AuthService()
+          .signInWithEmail(_emailController.text, _passwordController.text);
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const FacultyHome()));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const FacultyHome()));
       }
     } catch (e) {
       if (mounted) {
@@ -59,9 +53,9 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
               obscureText: true,
             ),
             const SizedBox(height: 32),
-            _isLoading 
-              ? const CircularProgressIndicator()
-              : ElevatedButton(onPressed: _login, child: const Text('Login')),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(onPressed: _login, child: const Text('Login')),
           ],
         ),
       ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
-import '../admin/admin_dashboard.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -15,18 +14,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    // Demo bypass for easy navigation
-    if (_emailController.text == 'admin@college.edu' && _passwordController.text == 'admin123') {
-      if (mounted) {
-         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
-      }
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
-      await AuthService().signInWithEmail(_emailController.text, _passwordController.text);
-      if (mounted) Navigator.pop(context); // Go back to main which will route to dashboard
+      await AuthService()
+          .signInWithEmail(_emailController.text, _passwordController.text);
+      if (mounted)
+        Navigator.pop(context); // Go back to main which will route to dashboard
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -57,9 +50,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               obscureText: true,
             ),
             const SizedBox(height: 32),
-            _isLoading 
-              ? const CircularProgressIndicator()
-              : ElevatedButton(onPressed: _login, child: const Text('Login')),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(onPressed: _login, child: const Text('Login')),
           ],
         ),
       ),
