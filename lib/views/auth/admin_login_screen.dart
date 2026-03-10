@@ -1,0 +1,68 @@
+import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
+import '../admin/admin_dashboard.dart';
+
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
+
+  @override
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
+}
+
+class _AdminLoginScreenState extends State<AdminLoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _login() async {
+    // Demo bypass for easy navigation
+    if (_emailController.text == 'admin@college.edu' && _passwordController.text == 'admin123') {
+      if (mounted) {
+         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService().signInWithEmail(_emailController.text, _passwordController.text);
+      if (mounted) Navigator.pop(context); // Go back to main which will route to dashboard
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login Failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Admin Login')),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 32),
+            _isLoading 
+              ? const CircularProgressIndicator()
+              : ElevatedButton(onPressed: _login, child: const Text('Login')),
+          ],
+        ),
+      ),
+    );
+  }
+}
