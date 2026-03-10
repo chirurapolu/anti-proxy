@@ -13,14 +13,13 @@ class FacultyHome extends ConsumerWidget {
 
   Stream<QuerySnapshot>? _getSafeSessionsStream(String? userId) {
     if (AuthService.isPrototypeMode) return const Stream<QuerySnapshot>.empty();
-    
+
     try {
       return FirebaseFirestore.instance
           .collection('class_sessions')
           .where('faculty_user_id', isEqualTo: userId)
           .orderBy('created_at', descending: true)
-          .snapshots()
-          .handleError((e) => debugPrint("Firestore stream error: $e"));
+          .snapshots();
     } catch (e) {
       debugPrint("Firestore query skipped in prototype mode");
       return const Stream<QuerySnapshot>.empty();
@@ -47,10 +46,19 @@ class FacultyHome extends ConsumerWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: _getSafeSessionsStream(user?.userId),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SelectableText(
+                'Database Error: ${snapshot.error}\nIf this says missing index, please click the link in your web console.',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           final sessions = snapshot.data?.docs ?? [];
 
           return Column(
@@ -58,7 +66,8 @@ class FacultyHome extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSession())),
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const CreateSession())),
                   icon: const Icon(Icons.add),
                   label: const Text('Create New Session'),
                 ),
@@ -69,17 +78,31 @@ class FacultyHome extends ConsumerWidget {
                     : ListView.builder(
                         itemCount: sessions.length,
                         itemBuilder: (context, index) {
-                          final session = SessionModel.fromMap(sessions[index].id, sessions[index].data() as Map<String, dynamic>);
+                          final session = SessionModel.fromMap(
+                              sessions[index].id,
+                              sessions[index].data() as Map<String, dynamic>);
                           return ListTile(
-                            title: Text('${session.subject} - ${session.section}'),
-                            subtitle: Text('Status: ${session.status.toUpperCase()}'),
+                            title:
+                                Text('${session.subject} - ${session.section}'),
+                            subtitle:
+                                Text('Status: ${session.status.toUpperCase()}'),
                             trailing: session.status == 'open'
                                 ? IconButton(
-                                    icon: const Icon(Icons.qr_code, color: Colors.blue),
-                                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrGeneratorScreen(session: session))),
+                                    icon: const Icon(Icons.qr_code,
+                                        color: Colors.blue),
+                                    onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) => QrGeneratorScreen(
+                                                session: session))),
                                   )
                                 : null,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LiveAttendanceScreen(sessionId: session.sessionId, section: session.section))),
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => LiveAttendanceScreen(
+                                        sessionId: session.sessionId,
+                                        section: session.section))),
                           );
                         },
                       ),
