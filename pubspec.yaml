@@ -16,7 +16,7 @@ dependencies:
   cloud_firestore: ^5.0.2
   firebase_storage: ^12.1.2
   qr_flutter: ^4.1.0
-  mobile_scanner: ^4.0.0
+  mobile_scanner: ^5.2.0
   geolocator: ^11.0.0
   google_ml_kit: ^0.18.0
   image_picker: ^1.1.0
