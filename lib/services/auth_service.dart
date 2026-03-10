@@ -10,7 +10,16 @@ class AuthService {
   FirebaseAuth? _manualAuth;
   FirebaseFirestore? _manualDb;
 
-  FirebaseAuth get _auth => _manualAuth ?? FirebaseAuth.instance;
+  FirebaseAuth get _auth {
+    if (_manualAuth != null) return _manualAuth!;
+    final auth = FirebaseAuth.instance;
+    if (kIsWeb) {
+      // Prevent cross-tab/device session bleeding on web
+      auth.setPersistence(Persistence.SESSION);
+    }
+    return auth;
+  }
+
   FirebaseFirestore get _db => _manualDb ?? FirebaseFirestore.instance;
 
   Stream<User?> get authStateChanges {
@@ -32,10 +41,21 @@ class AuthService {
       return UserModel.fromMap(query.docs.first.data());
     }
 
-    // Fallback: Check if the UID itself is the document ID (for anonymous students later)
+    // Fallback: Check if the UID itself is the document ID
     var doc = await _db.collection('users').doc(uid).get();
     if (doc.exists) {
       return UserModel.fromMap(doc.data()!);
+    }
+
+    // NEW: If no document exists but the user is logged in anonymously, it's a student session
+    final currentUser = _auth.currentUser;
+    if (currentUser != null && currentUser.isAnonymous) {
+      return UserModel(
+        userId: 'student_${currentUser.uid.substring(0, 5)}',
+        name: 'Guest Student',
+        role: UserRole.student,
+        createdAt: DateTime.now(),
+      );
     }
 
     return null;

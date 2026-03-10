@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
-import '../student/student_home.dart';
 
 class StudentOtpLogin extends StatefulWidget {
   const StudentOtpLogin({super.key});
@@ -35,12 +34,19 @@ class _StudentOtpLoginState extends State<StudentOtpLogin> {
     if (success) {
       // Anonymous join
       if (!AuthService.isPrototypeMode) {
-        await AuthService().signInAnonymously();
-      }
-      // Note: In real app, we'd link this or store UID in Firestore linked to Student Roll No
-      if (mounted) {
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const StudentHome()));
+        try {
+          await AuthService().signInAnonymously();
+          // The AuthWrapper will detect the state change and automatically route to StudentHome
+          if (mounted) {
+            Navigator.pop(context); // Close the OTP dialog/screen
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text('Login failed: $e')));
+          }
+        }
       }
     } else {
       if (mounted) {
