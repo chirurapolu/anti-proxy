@@ -31,7 +31,7 @@ class FacultyHome extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Faculty Portal'),
+        title: const Text('Faculty Portal (v2)'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
