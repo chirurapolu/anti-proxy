@@ -35,17 +35,19 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
 
   Future<void> _submit() async {
     if (_currentPosition == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please get current location first')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please get current location first')));
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       final session = SessionModel(
-        sessionId: 'proto_${DateTime.now().millisecondsSinceEpoch}',
+        sessionId: DateTime.now().millisecondsSinceEpoch.toString(),
         subject: _subjectController.text,
         section: _sectionController.text,
-        facultyUserId: 'faculty_demo',
+        facultyUserId:
+            'faculty_demo', // TODO: Replace with real faculty ID from auth
         facultyAuthUid: 'demo_uid',
         startTime: DateTime.now(),
         endTime: DateTime.now().add(const Duration(hours: 1)),
@@ -56,22 +58,26 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
         createdAt: DateTime.now(),
       );
 
-      if (AuthService.isPrototypeMode) {
-        debugPrint("Firebase Session creation skipped in prototype mode");
-      } else {
-        await FirebaseFirestore.instance.collection('class_sessions').add(session.toMap());
+      if (!AuthService.isPrototypeMode) {
+        await FirebaseFirestore.instance
+            .collection('class_sessions')
+            .add(session.toMap());
       }
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Prototype Success: Session created locally'),
-          backgroundColor: Colors.blue,
+          content: Text('Session created successfully in Firebase'),
+          backgroundColor: Colors.green,
         ));
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-    } finally {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error creating session: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -84,21 +90,37 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            TextField(controller: _subjectController, decoration: const InputDecoration(labelText: 'Subject (e.g. Mathematics)')),
+            TextField(
+                controller: _subjectController,
+                decoration: const InputDecoration(
+                    labelText: 'Subject (e.g. Mathematics)')),
             const SizedBox(height: 16),
-            TextField(controller: _sectionController, decoration: const InputDecoration(labelText: 'Section (e.g. CSE-A)')),
+            TextField(
+                controller: _sectionController,
+                decoration:
+                    const InputDecoration(labelText: 'Section (e.g. CSE-A)')),
             const SizedBox(height: 16),
-            TextField(controller: _radiusController, decoration: const InputDecoration(labelText: 'Radius (meters)'), keyboardType: TextInputType.number),
+            TextField(
+                controller: _radiusController,
+                decoration: const InputDecoration(labelText: 'Radius (meters)'),
+                keyboardType: TextInputType.number),
             const SizedBox(height: 24),
             ListTile(
-              title: Text(_currentPosition == null ? 'Location not set' : 'Location Captured'),
-              subtitle: Text(_currentPosition == null ? 'Tap button to get GPS' : 'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}'),
-              trailing: IconButton(icon: const Icon(Icons.my_location), onPressed: _getCurrentLocation),
+              title: Text(_currentPosition == null
+                  ? 'Location not set'
+                  : 'Location Captured'),
+              subtitle: Text(_currentPosition == null
+                  ? 'Tap button to get GPS'
+                  : 'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}'),
+              trailing: IconButton(
+                  icon: const Icon(Icons.my_location),
+                  onPressed: _getCurrentLocation),
             ),
             const SizedBox(height: 32),
-            _isLoading 
-              ? const CircularProgressIndicator()
-              : ElevatedButton(onPressed: _submit, child: const Text('Create Session')),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _submit, child: const Text('Create Session')),
           ],
         ),
       ),

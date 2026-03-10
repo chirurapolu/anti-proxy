@@ -50,7 +50,7 @@ class OtpManagement extends StatelessWidget {
               String userId = doc.id;
 
               return ListTile(
-                title: Text('User ID: $userId'),
+                title: Text('${data['name'] ?? 'Unknown'} (ID: $userId)'),
                 subtitle: Text(
                     'Requested: ${(data['requested_at'] as Timestamp?)?.toDate().toString() ?? 'N/A'}'),
                 trailing: Row(

@@ -83,9 +83,11 @@ class AuthService {
     }
 
     try {
-      // Check if user exists (Optional: Depends on if you want to allow unknown users to request OTP)
+      // Check if user exists
       var userDoc = await _db.collection('users').doc(userId).get();
       if (!userDoc.exists) return false;
+
+      String userName = userDoc.data()?['name'] ?? 'Unknown Student';
 
       // Generate a random 6-digit OTP
       String otp = (100000 + (DateTime.now().millisecond * 899))
@@ -94,6 +96,7 @@ class AuthService {
           .substring(0, 6);
 
       await _db.collection('pending_otps').doc(userId).set({
+        'name': userName,
         'requested_at': FieldValue.serverTimestamp(),
         'consumed': false,
         'otp': otp,
