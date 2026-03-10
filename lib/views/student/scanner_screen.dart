@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -68,7 +69,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       appBar: AppBar(title: const Text('Scan Faculty QR')),
       body: MobileScanner(
         controller: MobileScannerController(
-          facing: CameraFacing.back,
+          facing: kIsWeb ? CameraFacing.front : CameraFacing.back,
           formats: const [BarcodeFormat.qrCode],
         ),
         onDetect: _onDetect,
@@ -86,8 +87,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    error.errorDetails?.message ??
-                        'Please ensure you have granted camera permissions in your browser. \n\nClick the padlock icon 🔒 next to the URL bar and set Camera to "Allow".',
+                    error.errorDetails?.message
+                                ?.contains('Null check operator') ==
+                            true
+                        ? 'Camera not found or permissions denied. \n\nPlease ensure your device has a camera and that you have granted camera permissions in your browser by clicking the padlock icon 🔒 next to the URL.'
+                        : (error.errorDetails?.message ??
+                            'Please ensure you have granted camera permissions in your browser. \n\nClick the padlock icon 🔒 next to the URL bar and set Camera to "Allow".'),
                     textAlign: TextAlign.center,
                   ),
                 ),
