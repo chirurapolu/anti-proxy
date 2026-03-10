@@ -23,7 +23,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       if (code == null) return;
 
       setState(() => _isProcessing = true);
-      
+
       try {
         final Map<String, dynamic> payload = jsonDecode(code);
         final String sessionId = payload['s_id'];
@@ -36,21 +36,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
         }
 
         // Fetch session for GPS data
-        final doc = await FirebaseFirestore.instance.collection('class_sessions').doc(sessionId).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('class_sessions')
+            .doc(sessionId)
+            .get();
         if (!doc.exists) throw 'Invalid Session';
-        
+
         final session = SessionModel.fromMap(doc.id, doc.data()!);
         if (session.status != 'open') throw 'Session is closed';
 
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => VerificationView(session: session)),
+            MaterialPageRoute(
+                builder: (_) => VerificationView(session: session)),
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Error: $e')));
           setState(() => _isProcessing = false);
         }
       }
@@ -62,8 +67,46 @@ class _ScannerScreenState extends State<ScannerScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Scan Faculty QR')),
       body: MobileScanner(
-        controller: MobileScannerController(facing: CameraFacing.back),
+        controller: MobileScannerController(
+          facing: CameraFacing.back,
+          formats: const [BarcodeFormat.qrCode],
+        ),
         onDetect: _onDetect,
+        errorBuilder: (context, error, child) {
+          debugPrint('Scanner Error: $error');
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, color: Colors.red, size: 80),
+                const SizedBox(height: 16),
+                const Text('Camera Error',
+                    style:
+                        TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    error.errorDetails?.message ??
+                        'Please ensure you have granted camera permissions in your browser. \n\nClick the padlock icon 🔒 next to the URL bar and set Camera to "Allow".',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+        placeholderBuilder: (context, child) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Requesting Camera Permission...'),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
