@@ -18,6 +18,8 @@ class _UserRegistrationState extends State<UserRegistration> {
   final _idController = TextEditingController();
   final _nameController = TextEditingController();
   final _sectionController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   UserRole _selectedRole = UserRole.student;
   XFile? _pickedFile;
   Uint8List? _webImage;
@@ -42,10 +44,26 @@ class _UserRegistrationState extends State<UserRegistration> {
     }
   }
 
+  @override
+  void dispose() {
+    _idController.dispose();
+    _nameController.dispose();
+    _sectionController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _register() async {
     if (_pickedFile == null && _selectedRole == UserRole.student) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Student photo required')));
+      return;
+    }
+    if (_selectedRole != UserRole.student &&
+        (_emailController.text.isEmpty || _passwordController.text.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Email and Password required for Faculty/Admin')));
       return;
     }
 
@@ -73,6 +91,14 @@ class _UserRegistrationState extends State<UserRegistration> {
               onTimeout: () => throw 'Getting photo URL timed out');
         }
 
+        String? authUid;
+        if (!AuthService.isPrototypeMode && _selectedRole != UserRole.student) {
+          debugPrint('Registration: Creating Auth account...');
+          final cred = await AuthService().createUserWithEmail(
+              _emailController.text, _passwordController.text);
+          authUid = cred.user?.uid;
+        }
+
         debugPrint('Registration: Creating Firestore document...');
         final user = UserModel(
           userId: _idController.text,
@@ -82,6 +108,9 @@ class _UserRegistrationState extends State<UserRegistration> {
               ? _sectionController.text
               : null,
           photoUrl: photoUrl,
+          email:
+              _selectedRole != UserRole.student ? _emailController.text : null,
+          authUid: authUid,
           createdAt: DateTime.now(),
         );
 
@@ -162,6 +191,17 @@ class _UserRegistrationState extends State<UserRegistration> {
                   controller: _sectionController,
                   decoration:
                       const InputDecoration(labelText: 'Section (e.g. CSE-A)')),
+            ] else ...[
+              const SizedBox(height: 16),
+              TextField(
+                  controller: _emailController,
+                  decoration:
+                      const InputDecoration(labelText: 'Email Address')),
+              const SizedBox(height: 16),
+              TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password')),
             ],
             const SizedBox(height: 32),
             _isLoading

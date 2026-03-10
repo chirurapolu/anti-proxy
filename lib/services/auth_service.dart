@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart'; // Added for secondary app
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -64,6 +65,23 @@ class AuthService {
   Future<UserCredential> signInWithEmail(String email, String password) async {
     return await _auth.signInWithEmailAndPassword(
         email: email, password: password);
+  }
+
+  // Create user using a secondary app to avoid logging out the current admin
+  Future<UserCredential> createUserWithEmail(
+      String email, String password) async {
+    FirebaseApp tempApp = await Firebase.initializeApp(
+      name: 'TempAuthApp_${DateTime.now().millisecondsSinceEpoch}',
+      options: Firebase.app().options,
+    );
+    try {
+      UserCredential userCredential =
+          await FirebaseAuth.instanceFor(app: tempApp)
+              .createUserWithEmailAndPassword(email: email, password: password);
+      return userCredential;
+    } finally {
+      await tempApp.delete();
+    }
   }
 
   Future<UserCredential> signInAnonymously() async {
