@@ -5,7 +5,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
-import 'dart:typed_data';
 
 class UserRegistration extends StatefulWidget {
   const UserRegistration({super.key});
@@ -100,16 +99,18 @@ class _UserRegistrationState extends State<UserRegistration> {
         }
 
         debugPrint('Registration: Creating Firestore document...');
+        final cleanUserId = _idController.text.trim().toUpperCase();
         final user = UserModel(
-          userId: _idController.text,
-          name: _nameController.text,
+          userId: cleanUserId,
+          name: _nameController.text.trim(),
           role: _selectedRole,
           section: _selectedRole == UserRole.student
-              ? _sectionController.text
+              ? _sectionController.text.trim().toUpperCase()
               : null,
           photoUrl: photoUrl,
-          email:
-              _selectedRole != UserRole.student ? _emailController.text : null,
+          email: _selectedRole != UserRole.student
+              ? _emailController.text.trim()
+              : null,
           authUid: authUid,
           createdAt: DateTime.now(),
         );
