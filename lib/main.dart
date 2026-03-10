@@ -12,52 +12,22 @@ import 'providers/auth_provider.dart';
 import 'models/user_model.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Start Firebase only if we are not in prototype mode
-  bool firebaseInitialized = false;
   try {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Attempt Firebase initialization
     if (!AuthService.isPrototypeMode) {
+      debugPrint('Main: Initializing Firebase...');
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      debugPrint('Main: Firebase initialized successfully.');
     }
-    firebaseInitialized = true;
   } catch (e) {
-    debugPrint('Initialization error: $e');
+    debugPrint('Main: Initialization error: $e');
   }
 
-  runApp(ProviderScope(
-    child: firebaseInitialized
-        ? const MyApp()
-        : MaterialApp(
-            debugShowCheckedModeBanner: false,
-            home: Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.red, size: 48),
-                    const SizedBox(height: 16),
-                    const Text('Initialization Error'),
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        'The app could not start properly. Please check your internet connection or try again.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => main(),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-  ));
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
