@@ -106,6 +106,7 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
                 sessionRef.collection('attendance').doc(studentDoc.id);
             batch.set(attendanceRef, {
               'status': 'absent',
+              'name': studentDoc.data()['name'] ?? 'Unknown',
               'timestamp': null,
               'marked_by': 'auto',
             });
