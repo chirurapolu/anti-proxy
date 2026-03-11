@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import 'package:flutter/material.dart';
+import '../student/face_registration_view.dart';
 
 class StudentOtpLogin extends StatefulWidget {
   const StudentOtpLogin({super.key});
@@ -35,13 +36,18 @@ class _StudentOtpLoginState extends State<StudentOtpLogin> {
       // Anonymous join
       if (!AuthService.isPrototypeMode) {
         try {
-          await AuthService().signInAnonymously();
+          final authService = AuthService();
+          final userCred = await authService.signInAnonymously();
+          
+          // Link the student ID to this anonymous Auth UID
+          await authService.linkStudentAuth(
+            _userIdController.text.trim().toUpperCase(), 
+            userCred.user!.uid
+          );
+
           if (mounted) {
             Navigator.pop(context); // Close the OTP dialog/screen
           }
-          // The AuthWrapper will detect the state change and automatically swap the screen
-          // Do NOT call Navigator.pop(context) here, because the widget will be unmounted
-          // instantly by Riverpod, causing an error that freezes the UI loop.
         } catch (e) {
           if (mounted) {
             setState(() => _isLoading = false);

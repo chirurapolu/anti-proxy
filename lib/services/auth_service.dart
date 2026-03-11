@@ -42,24 +42,19 @@ class AuthService {
       return UserModel.fromMap(query.docs.first.data());
     }
 
-    // Fallback: Check if the UID itself is the document ID
+    // Fallback: Check if the UID itself is the document ID (e.g. for legacy records)
     var doc = await _db.collection('users').doc(uid).get();
     if (doc.exists) {
       return UserModel.fromMap(doc.data()!);
     }
 
-    // NEW: If no document exists but the user is logged in anonymously, it's a student session
-    final currentUser = _auth.currentUser;
-    if (currentUser != null && currentUser.isAnonymous) {
-      return UserModel(
-        userId: 'student_${currentUser.uid.substring(0, 5)}',
-        name: 'Guest Student',
-        role: UserRole.student,
-        createdAt: DateTime.now(),
-      );
-    }
-
     return null;
+  }
+
+  Future<void> linkStudentAuth(String studentId, String authUid) async {
+    await _db.collection('users').doc(studentId).update({
+      'auth_uid': authUid,
+    });
   }
 
   Future<UserCredential> signInWithEmail(String email, String password) async {

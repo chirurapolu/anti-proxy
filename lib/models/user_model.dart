@@ -10,6 +10,7 @@ class UserModel {
   final String? photoUrl;
   final String? email;
   final String? authUid;
+  final bool faceRegistered;
   final DateTime createdAt;
 
   UserModel({
@@ -20,6 +21,7 @@ class UserModel {
     this.photoUrl,
     this.email,
     this.authUid,
+    this.faceRegistered = false,
     required this.createdAt,
   });
 
@@ -56,6 +58,7 @@ class UserModel {
       photoUrl: map['photo_url']?.toString(),
       email: map['email']?.toString() ?? map['auth_email']?.toString(),
       authUid: map['auth_uid']?.toString(),
+      faceRegistered: map['face_registered'] ?? false,
       createdAt: createdAt,
     );
   }
@@ -69,6 +72,7 @@ class UserModel {
       'photo_url': photoUrl,
       'email': email,
       'auth_uid': authUid,
+      'face_registered': faceRegistered,
       'created_at': Timestamp.fromDate(createdAt),
     };
   }

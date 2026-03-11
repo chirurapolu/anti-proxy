@@ -5,6 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/session_model.dart';
@@ -89,10 +93,66 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
         log('Web Platform detected: Bypassing ML Kit Face Detection pipeline.');
       }
 
-      // Layer 4: Final Submit
-      setState(() => _status = 'Marking Attendance...');
+      // 3.5 REAL FACE MATCHING USING LUXAND API
+      setState(() => _status = 'Verifying Face Match...');
+      
       final user = ref.read(userProvider).value;
       if (user == null) throw 'User data not loaded';
+
+      // Get registered face URL from Firestore (via UserModel)
+      final registeredFaceUrl = user.photoUrl;
+      if (registeredFaceUrl == null || registeredFaceUrl.isEmpty) {
+        throw 'No registered face found. Please register your face first.';
+      }
+
+      // Upload temporary selfie to get a public URL for Luxand
+      final tempStorageRef = FirebaseStorage.instance
+          .ref()
+          .child('user_photos')
+          .child(user.userId)
+          .child('temp_selfie.jpg');
+
+      String tempSelfieUrl;
+      if (kIsWeb) {
+        final bytes = await photo.readAsBytes();
+        await tempStorageRef.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      } else {
+        await tempStorageRef.putFile(File(photo.path));
+      }
+      tempSelfieUrl = await tempStorageRef.getDownloadURL();
+
+      // Call Luxand API
+      final luxandUrl = Uri.parse('https://api.luxand.cloud/photo/similarity');
+      final response = await http.post(
+        luxandUrl,
+        headers: {
+          'token': '1f491b89a306440693e43872235ad93d',
+        },
+        body: {
+          'face1': registeredFaceUrl,
+          'face2': tempSelfieUrl,
+        },
+      );
+
+      log('Luxand Response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode != 200) {
+        throw 'Face API error. Please try again.';
+      }
+
+      final data = jsonDecode(response.body);
+      if (data['status'] == 'failure') {
+        throw data['message'] ?? 'Face verification failed.';
+      }
+
+      final double score = (data['score'] ?? 0.0) as double;
+      // We consider it a match if similar == true or score is very high
+      if (data['similar'] != true && score < 0.8) {
+        throw 'Face does not match the registered student. Score: ${(score * 100).toStringAsFixed(1)}%';
+      }
+
+      // Layer 4: Final Submit
+      setState(() => _status = 'Marking Attendance...');
 
       await FirebaseFirestore.instance
           .collection('class_sessions')

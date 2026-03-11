@@ -8,6 +8,7 @@ import 'firebase_options.dart';
 import 'views/admin/admin_dashboard.dart';
 import 'views/faculty/faculty_home.dart';
 import 'views/student/student_home.dart';
+import 'views/student/face_registration_view.dart';
 import 'providers/auth_provider.dart';
 import 'models/user_model.dart';
 
@@ -102,6 +103,9 @@ class AuthWrapper extends ConsumerWidget {
               case UserRole.faculty:
                 return const FacultyHome();
               case UserRole.student:
+                if (!userModel.faceRegistered) {
+                  return FaceRegistrationView(userId: userModel.userId);
+                }
                 return const StudentHome();
             }
           },
