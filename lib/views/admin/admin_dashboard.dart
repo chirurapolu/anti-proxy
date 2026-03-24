@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import 'user_registration.dart';
 import 'otp_management.dart';
 import 'create_class_view.dart';
+import 'analytics_view.dart';
 
 class AdminDashboard extends ConsumerWidget {
   const AdminDashboard({super.key});
@@ -40,7 +41,12 @@ class AdminDashboard extends ConsumerWidget {
             () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const OtpManagement())),
           ),
-          _buildCard(context, 'Analytics', Icons.analytics_outlined, () {}),
+          _buildCard(
+            context,
+            'Analytics',
+            Icons.analytics_outlined,
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsView())),
+          ),
           _buildCard(
             context,
             'Create Class',

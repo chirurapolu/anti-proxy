@@ -137,14 +137,6 @@ class LiveAttendanceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Attendance: $section'),
-        actions: [
-          TextButton.icon(
-            onPressed: () => _closeSession(context),
-            icon: const Icon(Icons.close, color: Colors.white),
-            label: const Text('Close Session',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -209,42 +201,54 @@ class LiveAttendanceScreen extends StatelessWidget {
                   },
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, -2))
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () => _deleteSession(context),
-                        child: const Text('Delete Session'),
-                      ),
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('class_sessions')
+                    .doc(sessionId)
+                    .snapshots(),
+                builder: (context, sessionSnapshot) {
+                  final isClosed = sessionSnapshot.data?.get('status') == 'closed';
+                  
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, -2))
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => _deleteSession(context),
+                            child: const Text('Delete Session'),
+                          ),
                         ),
-                        onPressed: () => _closeSession(context),
-                        child: const Text('Submit Attendance'),
-                      ),
+                        if (!isClosed) ...[
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () => _closeSession(context),
+                              child: const Text('Submit Attendance'),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                }
               ),
             ],
           );
