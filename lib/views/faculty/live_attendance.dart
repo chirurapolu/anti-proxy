@@ -190,10 +190,20 @@ class LiveAttendanceScreen extends StatelessWidget {
                       title: Text(data['name'] ?? 'Unknown'),
                       subtitle: Text(
                           'Roll No: ${records[index].id}${data['note'] != null ? ' - ${data['note']}' : ''}'),
-                      trailing: Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                            color: color, fontWeight: FontWeight.bold),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            status.toUpperCase(),
+                            style: TextStyle(
+                                color: color, fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _manualOverride(context, records[index].id, status),
+                            tooltip: 'Manual Override',
+                          ),
+                        ],
                       ),
                       onLongPress: () =>
                           _manualOverride(context, records[index].id, status),

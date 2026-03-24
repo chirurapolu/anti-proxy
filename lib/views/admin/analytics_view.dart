@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../../models/class_model.dart';
+import '../../services/class_service.dart';
 
-class AnalyticsView extends StatefulWidget {
+class AnalyticsView extends ConsumerStatefulWidget {
   const AnalyticsView({super.key});
 
   @override
-  State<AnalyticsView> createState() => _AnalyticsViewState();
+  ConsumerState<AnalyticsView> createState() => _AnalyticsViewState();
 }
 
 class StudentAnalytics {
@@ -23,9 +26,12 @@ class StudentAnalytics {
   double get attendancePercentage => totalSessions == 0 ? 0 : (presentCount / totalSessions) * 100;
 }
 
-class _AnalyticsViewState extends State<AnalyticsView> {
+enum AttendanceFilter { all, below65, below75, above75 }
+
+class _AnalyticsViewState extends ConsumerState<AnalyticsView> {
   bool _isLoading = true;
-  bool _filterLowAttendance = false;
+  AttendanceFilter _selectedFilter = AttendanceFilter.all;
+  String? _selectedClassFilter = 'All';
   List<StudentAnalytics> _analyticsData = [];
 
   @override
@@ -89,6 +95,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
               pw.Text('Attendance Analytics Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 10),
               pw.Text('Generated on: ${DateTime.now().toIso8601String().split('T')[0]}'),
+              pw.Text('Class Filter: $_selectedClassFilter'),
               pw.SizedBox(height: 20),
               pw.Table.fromTextArray(
                 headers: ['Roll No', 'Name', 'Section', 'Total', 'Present', '%'],
@@ -114,9 +121,15 @@ class _AnalyticsViewState extends State<AnalyticsView> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredData = _filterLowAttendance 
-        ? _analyticsData.where((s) => s.attendancePercentage < 65.0).toList() 
-        : _analyticsData;
+    final classService = ref.watch(classServiceProvider);
+
+    List<StudentAnalytics> filteredData = _analyticsData.where((s) {
+      if (_selectedClassFilter != null && _selectedClassFilter != 'All' && s.section != _selectedClassFilter) return false;
+      if (_selectedFilter == AttendanceFilter.below65 && s.attendancePercentage >= 65.0) return false;
+      if (_selectedFilter == AttendanceFilter.below75 && s.attendancePercentage >= 75.0) return false;
+      if (_selectedFilter == AttendanceFilter.above75 && s.attendancePercentage < 75.0) return false;
+      return true;
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -132,17 +145,62 @@ class _AnalyticsViewState extends State<AnalyticsView> {
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
         : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Row(
+                child: Wrap(
+                  spacing: 16.0,
+                  runSpacing: 8.0,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    FilterChip(
-                      label: const Text('< 65% Attendance'),
-                      selected: _filterLowAttendance,
-                      onSelected: (val) => setState(() => _filterLowAttendance = val),
+                    // Class Dropdown
+                    StreamBuilder<List<ClassModel>>(
+                      stream: classService.getClasses(),
+                      builder: (context, snapshot) {
+                        List<String> classOptions = ['All'];
+                        if (snapshot.hasData) {
+                          final classes = snapshot.data!;
+                          for (var c in classes) {
+                            classOptions.add('${c.year}-${c.branch}-${c.section}');
+                          }
+                        }
+                        return DropdownButton<String>(
+                          value: classOptions.contains(_selectedClassFilter) ? _selectedClassFilter : 'All',
+                          items: classOptions.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedClassFilter = val;
+                            });
+                          },
+                          hint: const Text('Select Class'),
+                        );
+                      }
+                    ),
+                    const SizedBox(width: 8),
+                    // Filter Chips
+                    ChoiceChip(
+                      label: const Text('All'),
+                      selected: _selectedFilter == AttendanceFilter.all,
+                      onSelected: (val) => setState(() => _selectedFilter = AttendanceFilter.all),
+                    ),
+                    ChoiceChip(
+                      label: const Text('< 65%'),
+                      selected: _selectedFilter == AttendanceFilter.below65,
                       selectedColor: Colors.red.withValues(alpha: 0.2),
-                      checkmarkColor: Colors.red,
+                      onSelected: (val) => setState(() => _selectedFilter = AttendanceFilter.below65),
+                    ),
+                    ChoiceChip(
+                      label: const Text('< 75%'),
+                      selected: _selectedFilter == AttendanceFilter.below75,
+                      selectedColor: Colors.orange.withValues(alpha: 0.2),
+                      onSelected: (val) => setState(() => _selectedFilter = AttendanceFilter.below75),
+                    ),
+                    ChoiceChip(
+                      label: const Text('>= 75%'),
+                      selected: _selectedFilter == AttendanceFilter.above75,
+                      selectedColor: Colors.green.withValues(alpha: 0.2),
+                      onSelected: (val) => setState(() => _selectedFilter = AttendanceFilter.above75),
                     ),
                   ],
                 ),
@@ -161,7 +219,9 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                         DataColumn(label: Text('%')),
                       ],
                       rows: filteredData.map((s) {
-                        final isLow = s.attendancePercentage < 65.0;
+                        final color = s.attendancePercentage < 65.0 
+                            ? Colors.red 
+                            : (s.attendancePercentage < 75.0 ? Colors.orange : Colors.green);
                         return DataRow(cells: [
                           DataCell(Text(s.id)),
                           DataCell(Text(s.name)),
@@ -170,7 +230,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                           DataCell(Text(s.presentCount.toString())),
                           DataCell(Text(
                             '${s.attendancePercentage.toStringAsFixed(1)}%',
-                            style: TextStyle(color: isLow ? Colors.red : Colors.green, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: color, fontWeight: FontWeight.bold),
                           )),
                         ]);
                       }).toList(),
