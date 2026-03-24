@@ -123,9 +123,12 @@ class _TodayViewState extends ConsumerState<TodayView> {
                     .collection('class_sessions')
                     .where('section', isEqualTo: user.section)
                     .where('date', isEqualTo: formattedFilterDate)
-                    .orderBy('start_time', descending: false)
                     .snapshots(),
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error loading sessions: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+                  }
+
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -133,6 +136,9 @@ class _TodayViewState extends ConsumerState<TodayView> {
                   final sessions = snapshot.data?.docs.map((doc) => 
                     SessionModel.fromMap(doc.id, doc.data() as Map<String, dynamic>)
                   ).toList() ?? [];
+
+                  // Sort in memory to avoid missing Firestore Composite Index errors
+                  sessions.sort((a, b) => a.startTime.compareTo(b.startTime));
 
                   if (sessions.isEmpty) {
                     return Center(
