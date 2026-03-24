@@ -241,30 +241,40 @@ class _UserRegistrationState extends ConsumerState<UserRegistration> {
                     _selectedSection = null;
                   }
 
-                  return Column(
+                  return Row(
                     children: [
-                      DropdownButtonFormField<String>(
-                        value: _selectedYear,
-                        hint: const Text('Select Year'),
-                        items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                        onChanged: (val) => setState(() => _selectedYear = val),
-                        decoration: const InputDecoration(labelText: 'Year'),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _selectedYear,
+                          hint: const Text('Year'),
+                          items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                          onChanged: (val) => setState(() => _selectedYear = val),
+                          decoration: const InputDecoration(labelText: 'Year'),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedBranch,
-                        hint: const Text('Select Branch'),
-                        items: branches.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
-                        onChanged: _selectedYear != null ? (val) => setState(() => _selectedBranch = val) : null,
-                        decoration: const InputDecoration(labelText: 'Branch'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _selectedBranch,
+                          hint: const Text('Branch'),
+                          items: branches.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                          onChanged: _selectedYear != null ? (val) => setState(() => _selectedBranch = val) : null,
+                          decoration: const InputDecoration(labelText: 'Branch'),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedSection,
-                        hint: const Text('Select Section'),
-                        items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                        onChanged: _selectedBranch != null ? (val) => setState(() => _selectedSection = val) : null,
-                        decoration: const InputDecoration(labelText: 'Section'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _selectedSection,
+                          hint: const Text('Sec'),
+                          items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                          onChanged: _selectedBranch != null ? (val) => setState(() => _selectedSection = val) : null,
+                          decoration: const InputDecoration(labelText: 'Section'),
+                        ),
                       ),
                     ],
                   );

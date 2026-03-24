@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/session_model.dart';
 import '../../services/auth_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../models/class_model.dart';
+import '../../services/class_service.dart';
 
 class CreateSession extends ConsumerStatefulWidget {
   const CreateSession({super.key});
@@ -16,10 +18,13 @@ class CreateSession extends ConsumerStatefulWidget {
 
 class _CreateSessionState extends ConsumerState<CreateSession> {
   final _subjectController = TextEditingController();
-  final _sectionController = TextEditingController();
   final _radiusController = TextEditingController(text: '25');
   DateTime _selectedDate = DateTime.now();
   String _selectedTimeSlot = '09:00 AM - 10:00 AM';
+
+  String? _selectedYear;
+  String? _selectedBranch;
+  String? _selectedSection;
 
   final List<String> _timeSlots = [
     '08:00 AM - 09:00 AM',
@@ -51,6 +56,12 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
   }
 
   Future<void> _submit() async {
+    if (_selectedYear == null || _selectedBranch == null || _selectedSection == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select Year, Branch, and Section')));
+      return;
+    }
+
     if (_currentPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please get current location first')));
@@ -69,7 +80,7 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
       final session = SessionModel(
         sessionId: DateTime.now().millisecondsSinceEpoch.toString(),
         subject: _subjectController.text,
-        section: _sectionController.text,
+        section: '$_selectedYear-$_selectedBranch-$_selectedSection',
         facultyUserId: user.userId, // Use the real, logged-in user ID
         facultyAuthUid: user.authUid ?? 'unknown',
         date: DateFormat('yyyy-MM-dd').format(_selectedDate),
@@ -137,6 +148,8 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
 
   @override
   Widget build(BuildContext context) {
+    final classService = ref.watch(classServiceProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Create Class Session')),
       body: SingleChildScrollView(
@@ -148,10 +161,79 @@ class _CreateSessionState extends ConsumerState<CreateSession> {
                 decoration: const InputDecoration(
                     labelText: 'Subject (e.g. Mathematics)')),
             const SizedBox(height: 16),
-            TextField(
-                controller: _sectionController,
-                decoration:
-                    const InputDecoration(labelText: 'Section (e.g. CSE-A)')),
+            StreamBuilder<List<ClassModel>>(
+              stream: classService.getClasses(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const CircularProgressIndicator();
+                final classes = snapshot.data!;
+                
+                final years = classes.map((c) => c.year).toSet().toList()..sort();
+                if (!years.contains(_selectedYear)) {
+                  _selectedYear = null;
+                  _selectedBranch = null;
+                  _selectedSection = null;
+                }
+                
+                List<String> branches = [];
+                if (_selectedYear != null) {
+                  branches = classes.where((c) => c.year == _selectedYear).map((c) => c.branch).toSet().toList()..sort();
+                }
+                if (!branches.contains(_selectedBranch)) {
+                  _selectedBranch = null;
+                  _selectedSection = null;
+                }
+
+                List<String> sections = [];
+                if (_selectedYear != null && _selectedBranch != null) {
+                  sections = classes
+                      .where((c) => c.year == _selectedYear && c.branch == _selectedBranch)
+                      .map((c) => c.section)
+                      .toSet()
+                      .toList()..sort();
+                }
+                if (!sections.contains(_selectedSection)) {
+                  _selectedSection = null;
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _selectedYear,
+                        hint: const Text('Year'),
+                        items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                        onChanged: (val) => setState(() => _selectedYear = val),
+                        decoration: const InputDecoration(labelText: 'Year'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _selectedBranch,
+                        hint: const Text('Branch'),
+                        items: branches.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                        onChanged: _selectedYear != null ? (val) => setState(() => _selectedBranch = val) : null,
+                        decoration: const InputDecoration(labelText: 'Branch'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _selectedSection,
+                        hint: const Text('Sec'),
+                        items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        onChanged: _selectedBranch != null ? (val) => setState(() => _selectedSection = val) : null,
+                        decoration: const InputDecoration(labelText: 'Section'),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
