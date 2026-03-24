@@ -3,26 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_model.dart';
+import '../../models/class_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/class_service.dart';
 
-class UserRegistration extends StatefulWidget {
+class UserRegistration extends ConsumerStatefulWidget {
   const UserRegistration({super.key});
 
   @override
-  State<UserRegistration> createState() => _UserRegistrationState();
+  ConsumerState<UserRegistration> createState() => _UserRegistrationState();
 }
 
-class _UserRegistrationState extends State<UserRegistration> {
+class _UserRegistrationState extends ConsumerState<UserRegistration> {
   final _idController = TextEditingController();
   final _nameController = TextEditingController();
-  final _sectionController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   UserRole _selectedRole = UserRole.student;
   XFile? _pickedFile;
   Uint8List? _webImage;
   bool _isLoading = false;
+
+  String? _selectedYear;
+  String? _selectedBranch;
+  String? _selectedSection;
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
@@ -47,7 +53,6 @@ class _UserRegistrationState extends State<UserRegistration> {
   void dispose() {
     _idController.dispose();
     _nameController.dispose();
-    _sectionController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -57,6 +62,11 @@ class _UserRegistrationState extends State<UserRegistration> {
     if (_pickedFile == null && _selectedRole == UserRole.student) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Student photo required')));
+      return;
+    }
+    if (_selectedRole == UserRole.student && _selectedSection == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Year, Branch and Section required for Student')));
       return;
     }
     if (_selectedRole != UserRole.student &&
@@ -100,13 +110,16 @@ class _UserRegistrationState extends State<UserRegistration> {
 
         debugPrint('Registration: Creating Firestore document...');
         final cleanUserId = _idController.text.trim().toUpperCase();
+        
+        final combinedSection = _selectedRole == UserRole.student
+            ? '$_selectedYear-$_selectedBranch-$_selectedSection'
+            : null;
+
         final user = UserModel(
           userId: cleanUserId,
           name: _nameController.text.trim(),
           role: _selectedRole,
-          section: _selectedRole == UserRole.student
-              ? _sectionController.text.trim().toUpperCase()
-              : null,
+          section: combinedSection,
           photoUrl: photoUrl,
           email: _selectedRole != UserRole.student
               ? _emailController.text.trim()
@@ -146,6 +159,8 @@ class _UserRegistrationState extends State<UserRegistration> {
 
   @override
   Widget build(BuildContext context) {
+    final classService = ref.watch(classServiceProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Register New User')),
       body: SingleChildScrollView(
@@ -188,10 +203,68 @@ class _UserRegistrationState extends State<UserRegistration> {
             ),
             if (_selectedRole == UserRole.student) ...[
               const SizedBox(height: 16),
-              TextField(
-                  controller: _sectionController,
-                  decoration:
-                      const InputDecoration(labelText: 'Section (e.g. CSE-A)')),
+              StreamBuilder<List<ClassModel>>(
+                stream: classService.getClasses(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const CircularProgressIndicator();
+                  final classes = snapshot.data!;
+                  
+                  final years = classes.map((c) => c.year).toSet().toList()..sort();
+                  if (!years.contains(_selectedYear)) {
+                    _selectedYear = null;
+                    _selectedBranch = null;
+                    _selectedSection = null;
+                  }
+                  
+                  final branches = _selectedYear != null
+                      ? classes.where((c) => c.year == _selectedYear).map((c) => c.branch).toSet().toList()..sort()
+                      : <String>[];
+                  if (!branches.contains(_selectedBranch)) {
+                    _selectedBranch = null;
+                    _selectedSection = null;
+                  }
+
+                  final sections = _selectedBranch != null
+                      ? classes
+                          .where((c) => c.year == _selectedYear && c.branch == _selectedBranch)
+                          .map((c) => c.section)
+                          .toSet()
+                          .toList()
+                          ..sort()
+                      : <String>[];
+                  if (!sections.contains(_selectedSection)) {
+                    _selectedSection = null;
+                  }
+
+                  return Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: _selectedYear,
+                        hint: const Text('Select Year'),
+                        items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                        onChanged: (val) => setState(() => _selectedYear = val),
+                        decoration: const InputDecoration(labelText: 'Year'),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedBranch,
+                        hint: const Text('Select Branch'),
+                        items: branches.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                        onChanged: _selectedYear != null ? (val) => setState(() => _selectedBranch = val) : null,
+                        decoration: const InputDecoration(labelText: 'Branch'),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedSection,
+                        hint: const Text('Select Section'),
+                        items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        onChanged: _selectedBranch != null ? (val) => setState(() => _selectedSection = val) : null,
+                        decoration: const InputDecoration(labelText: 'Section'),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ] else ...[
               const SizedBox(height: 16),
               TextField(

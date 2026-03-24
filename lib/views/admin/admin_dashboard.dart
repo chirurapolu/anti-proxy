@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import 'user_registration.dart';
 import 'otp_management.dart';
+import 'create_class_view.dart';
 
 class AdminDashboard extends ConsumerWidget {
   const AdminDashboard({super.key});
@@ -37,8 +38,13 @@ class AdminDashboard extends ConsumerWidget {
             Icons.vpn_key_rounded,
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OtpManagement())),
           ),
-          _buildCard(context, 'View Sessions', Icons.list_alt, () {}),
           _buildCard(context, 'Analytics', Icons.analytics_outlined, () {}),
+          _buildCard(
+            context, 
+            'Create Class', 
+            Icons.class_, 
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateClassView())),
+          ),
         ],
       ),
     );
