@@ -59,11 +59,7 @@ class _UserRegistrationState extends ConsumerState<UserRegistration> {
   }
 
   Future<void> _register() async {
-    if (_pickedFile == null && _selectedRole == UserRole.student) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Student photo required')));
-      return;
-    }
+    // Student photo is now optional due to billing issues, but we will still warn if other fields are missing.
     if (_selectedRole == UserRole.student && _selectedSection == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Year, Branch and Section required for Student')));
@@ -83,21 +79,29 @@ class _UserRegistrationState extends ConsumerState<UserRegistration> {
       if (!AuthService.isPrototypeMode) {
         if (_pickedFile != null) {
           debugPrint('Registration: Uploading photo...');
-          final bytes = await _pickedFile!.readAsBytes();
-          final ref = FirebaseStorage.instance
-              .ref()
-              .child('user_photos/${_idController.text}.jpg');
+          try {
+            final bytes = await _pickedFile!.readAsBytes();
+            final ref = FirebaseStorage.instance
+                .ref()
+                .child('user_photos/${_idController.text}.jpg');
 
-          final metadata = SettableMetadata(contentType: 'image/jpeg');
-          await ref.putData(bytes, metadata).timeout(
-              const Duration(seconds: 15),
-              onTimeout: () =>
-                  throw 'Photo upload timed out (CORS or Permissions?)');
+            final metadata = SettableMetadata(contentType: 'image/jpeg');
+            await ref.putData(bytes, metadata).timeout(
+                const Duration(seconds: 15),
+                onTimeout: () =>
+                    throw 'Photo upload timed out (CORS or Permissions?)');
 
-          debugPrint('Registration: Getting photo URL...');
-          photoUrl = await ref.getDownloadURL().timeout(
-              const Duration(seconds: 15),
-              onTimeout: () => throw 'Getting photo URL timed out');
+            debugPrint('Registration: Getting photo URL...');
+            photoUrl = await ref.getDownloadURL().timeout(
+                const Duration(seconds: 15),
+                onTimeout: () => throw 'Getting photo URL timed out');
+          } catch (e) {
+            debugPrint('Storage error: $e. Using fallback image.');
+            photoUrl = 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_nameController.text.trim())}&background=random';
+          }
+        } else if (_selectedRole == UserRole.student) {
+           // Provide a fallback avatar if no image was selected but they are a student
+           photoUrl = 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_nameController.text.trim())}&background=random';
         }
 
         String? authUid;

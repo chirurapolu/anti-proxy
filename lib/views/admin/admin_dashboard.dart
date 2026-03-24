@@ -30,27 +30,31 @@ class AdminDashboard extends ConsumerWidget {
             context,
             'Register User',
             Icons.person_add,
-            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserRegistration())),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const UserRegistration())),
           ),
           _buildCard(
             context,
             'Manage OTPs',
             Icons.vpn_key_rounded,
-            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OtpManagement())),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const OtpManagement())),
           ),
           _buildCard(context, 'Analytics', Icons.analytics_outlined, () {}),
           _buildCard(
-            context, 
-            'Create Class', 
-            Icons.class_, 
-            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateClassView())),
+            context,
+            'Create Class',
+            Icons.class_,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CreateClassView())),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCard(BuildContext context, String title, IconData icon, VoidCallback onTap) {
+  Widget _buildCard(
+      BuildContext context, String title, IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Card(
