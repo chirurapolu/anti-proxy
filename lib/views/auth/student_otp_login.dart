@@ -1,6 +1,5 @@
 import '../../services/auth_service.dart';
 import 'package:flutter/material.dart';
-import '../student/face_registration_view.dart';
 
 class StudentOtpLogin extends StatefulWidget {
   const StudentOtpLogin({super.key});
