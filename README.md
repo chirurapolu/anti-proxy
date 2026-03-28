@@ -44,5 +44,5 @@ To start, manually add an admin user in Firestore:
 - `lib/views/student`: Verification flow and scanning.
 
 ## Security
-- **Anti-Replay**: QR codes include a timestamp and expire in 60s.
+- **Anti-Replay**: QR codes include a timestamp and expire in 10s.
 - **Role Gating**: Strict Firestore rules ensure students only write their own attendance.
