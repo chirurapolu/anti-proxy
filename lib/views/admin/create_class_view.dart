@@ -141,6 +141,15 @@ class _CreateClassViewState extends ConsumerState<CreateClassView> {
           return true;
         }).toList();
 
+        // Sort classes hierarchically: Year -> Branch -> Section
+        filteredClasses.sort((a, b) {
+          int yearCompare = a.year.compareTo(b.year);
+          if (yearCompare != 0) return yearCompare;
+          int branchCompare = a.branch.compareTo(b.branch);
+          if (branchCompare != 0) return branchCompare;
+          return a.section.compareTo(b.section);
+        });
+
         return Scaffold(
           backgroundColor: const Color(0xFFF9F9F9),
           appBar: AppBar(
