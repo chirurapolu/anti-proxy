@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/glass_auth_layout.dart';
 
@@ -56,6 +57,31 @@ class _FacultyLoginScreenState extends ConsumerState<FacultyLoginScreen> {
     }
   }
 
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your institutional email first to receive a reset link.')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password reset link sent! Check your inbox.'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassAuthLayout(
@@ -81,7 +107,14 @@ class _FacultyLoginScreenState extends ConsumerState<FacultyLoginScreen> {
               prefixIcon: Icon(Icons.lock_outline),
             ),
           ),
-          const SizedBox(height: 32),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _resetPassword,
+              child: const Text('Forgot Password?', style: TextStyle(color: Colors.blue)),
+            ),
+          ),
+          const SizedBox(height: 16),
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : ElevatedButton.icon(
