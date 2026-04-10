@@ -124,21 +124,24 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
         tempSelfieUrl = 'fallback_due_to_billing';
       }
 
-      if (tempSelfieUrl == 'fallback_due_to_billing' || registeredFaceUrl.contains('ui-avatars.com')) {
-        log('Bypassing Luxand Face Match due to Billing Restrictions blocking Storage uploads.');
-      } else {
-        // Call Luxand API
-        final luxandUrl = Uri.parse('https://api.luxand.cloud/photo/similarity');
-        final response = await http.post(
-          luxandUrl,
-          headers: {
-            'token': 'cf9d3d3419f64218966a823844a3a451',
-          },
-          body: {
-            'face1': registeredFaceUrl,
-            'face2': tempSelfieUrl,
-          },
-        );
+      if (tempSelfieUrl == 'fallback_due_to_billing') {
+        throw 'Unable to process image. Make sure your internet connection is stable.';
+      } else if (registeredFaceUrl.contains('ui-avatars.com')) {
+        throw 'You must register a valid face before marking attendance.';
+      }
+
+      // Call Luxand API
+      final luxandUrl = Uri.parse('https://api.luxand.cloud/photo/similarity');
+      final response = await http.post(
+        luxandUrl,
+        headers: {
+          'token': 'cf9d3d3419f64218966a823844a3a451',
+        },
+        body: {
+          'face1': registeredFaceUrl,
+          'face2': tempSelfieUrl,
+        },
+      );
 
         log('Luxand Response: ${response.statusCode} - ${response.body}');
         
@@ -158,7 +161,6 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
         if (score < 0.85) {
           throw 'Face match failed (Score: ${(score * 100).toStringAsFixed(1)}%). Please ensure you are in a well-lit area.';
         }
-      }
 
       // Layer 4: Final Submit
       setState(() => _status = 'Marking Attendance...');
