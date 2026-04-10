@@ -132,7 +132,7 @@ class _VerificationViewState extends ConsumerState<VerificationView> {
         final response = await http.post(
           luxandUrl,
           headers: {
-            'token': '1f491b89a306440693e43872235ad93d',
+            'token': 'cf9d3d3419f64218966a823844a3a451',
           },
           body: {
             'face1': registeredFaceUrl,
